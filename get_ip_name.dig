@@ -1,11 +1,35 @@
-# digdag.dig
+# digdag.dig (K8s Jobのラッパー)
 
 _export:
+  # Dockerイメージのパスを定義 (CI/CDで最新がプッシュされている前提)
   docker: asia-northeast1-docker.pkg.dev/hogeticlab-legs-prd/ip-name-url/pixiv-ip:latest
-  
-+main_workflow:
-  _retry: 3
-  _command_timeout: 5h
 
-  +run_pixiv_search:
-    sh>: python unified_pixiv_search.py
+# ワークフロー定義名 (これがUIに表示される名前になります)
++pixiv_scraper_job_workflow:
+  _retry: 3
+  _command_timeout: 6h
+
+  +run_k8s_job:
+    # 💡 k8s.job> オペレーターを使用してKubernetes Jobを投入
+    k8s.job>:
+      # Kubernetes Job定義をインラインで記述
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: pixiv-scraper-job-${session_uuid}
+        namespace: collectro # ⬅️ 以前のYAMLから取得
+      spec:
+        backoffLimit: 0
+        template:
+          spec:
+            serviceAccountName: collectro
+            containers:
+            - name: pixiv-scraper
+              image: "${_export.docker}" # ⬅️ 上の _export からイメージパスを継承
+              command:
+                - "python"
+                - "unified_pixiv_search.py"
+              env:
+                - name: GCP_PROJECT_ID
+                  value: "hogeticlab-legs-prd"
+            restartPolicy: Never
