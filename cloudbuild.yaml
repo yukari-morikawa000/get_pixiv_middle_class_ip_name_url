@@ -1,0 +1,39 @@
+# cloudbuild.yaml
+
+steps:
+# 1. Dockerイメージのビルド
+- name: 'gcr.io/cloud-builders/ip_name_url'
+  id: Build
+  args:
+    - 'build'
+    - '-t'
+    - '${_AR_REPO_PATH}/${_IMAGE_NAME}:${SHORT_SHA}'
+    - '.'
+
+# 2. ビルドしたイメージに ':latest' タグを追加
+- name: 'gcr.io/cloud-builders/ip_name_url'
+  id: TagLatest
+  args:
+    - 'tag'
+    - '${_AR_REPO_PATH}/${_IMAGE_NAME}:${SHORT_SHA}'
+    - '${_AR_REPO_PATH}/${_IMAGE_NAME}:latest'
+
+# 3. Artifact Registryに両方のタグ（ビルドIDとlatest）をプッシュ
+- name: 'gcr.io/cloud-builders/ip_name_url'
+  id: Push
+  args:
+    - 'push'
+    - '${_AR_REPO_PATH}/${_IMAGE_NAME}'
+
+substitutions:
+  _GCP_PROJECT_ID: 'hogeticlab-legs-prd'
+  _GCP_REGION: 'asia-northeast1' 
+  _AR_REPO: 'ip_name_url' # Artifact Registryのリポジトリ名
+
+  # 派生変数の定義
+  _IMAGE_NAME: 'pixiv-scraper'
+  _AR_REPO_PATH: '${_GCP_REGION}-ip_name_url.pkg.dev/${_GCP_PROJECT_ID}/${_AR_REPO}'
+
+images:
+  - '${_AR_REPO_PATH}/${_IMAGE_NAME}:latest'
+  - '${_AR_REPO_PATH}/${_IMAGE_NAME}:${SHORT_SHA}'
