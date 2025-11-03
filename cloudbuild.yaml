@@ -38,7 +38,7 @@ substitutions:
   _AR_REPO: 'ip-name-url' # Artifact Registryのリポジトリ名
 
   # 派生変数の定義
-  _IMAGE_NAME: 'pixiv-scraper'
+  _IMAGE_NAME: 'pixiv-ip'
   _AR_REPO_PATH: '${_GCP_REGION}-docker.pkg.dev/${_GCP_PROJECT_ID}/${_AR_REPO}'
 
 images:
