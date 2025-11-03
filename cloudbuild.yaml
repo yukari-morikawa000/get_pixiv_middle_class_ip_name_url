@@ -23,7 +23,8 @@ steps:
   id: Push
   args:
     - 'push'
-    - '${_AR_REPO_PATH}/${_IMAGE_NAME}'
+    - '${_AR_REPO_PATH}/${_IMAGE_NAME}:latest' 
+    - '${_AR_REPO_PATH}/${_IMAGE_NAME}:${SHORT_SHA}'
 
 substitutions:
   _GCP_PROJECT_ID: 'hogeticlab-legs-prd'
