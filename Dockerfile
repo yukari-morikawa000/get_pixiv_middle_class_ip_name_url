@@ -5,7 +5,6 @@ FROM python:3.12-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        libnss3 \
-       libgconf-2-4 \
        libfontconfig1 \
        libharfbuzz0b \
        libicu-dev \
