@@ -2,7 +2,7 @@
 
 steps:
 # 1. Dockerイメージのビルド
-- name: 'gcr.io/cloud-builders/ip_name_url'
+- name: 'gcr.io/cloud-builders/docker'
   id: Build
   args:
     - 'build'
@@ -11,7 +11,7 @@ steps:
     - '.'
 
 # 2. ビルドしたイメージに ':latest' タグを追加
-- name: 'gcr.io/cloud-builders/ip_name_url'
+- name: 'gcr.io/cloud-builders/docker'
   id: TagLatest
   args:
     - 'tag'
@@ -19,7 +19,7 @@ steps:
     - '${_AR_REPO_PATH}/${_IMAGE_NAME}:latest'
 
 # 3. Artifact Registryに両方のタグ（ビルドIDとlatest）をプッシュ
-- name: 'gcr.io/cloud-builders/ip_name_url'
+- name: 'gcr.io/cloud-builders/docker'
   id: Push
   args:
     - 'push'
@@ -32,7 +32,8 @@ substitutions:
 
   # 派生変数の定義
   _IMAGE_NAME: 'pixiv-scraper'
-  _AR_REPO_PATH: '${_GCP_REGION}-ip_name_url.pkg.dev/${_GCP_PROJECT_ID}/${_AR_REPO}'
+  # : Artifact Registryのホスト名を修正 (一般的には 'docker.pkg.dev')
+  _AR_REPO_PATH: '${_GCP_REGION}-docker.pkg.dev/${_GCP_PROJECT_ID}/${_AR_REPO}'
 
 images:
   - '${_AR_REPO_PATH}/${_IMAGE_NAME}:latest'
