@@ -1,4 +1,4 @@
-# cloudbuild.yaml
+# cloudbuild.yaml (最終修正: Pushステップを分割)
 
 steps:
 # 1. Dockerイメージのビルド
@@ -18,12 +18,18 @@ steps:
     - '${_AR_REPO_PATH}/${_IMAGE_NAME}:${SHORT_SHA}'
     - '${_AR_REPO_PATH}/${_IMAGE_NAME}:latest'
 
-# 3. Artifact Registryに両方のタグ（ビルドIDとlatest）をプッシュ
+# 3. Artifact Registryに :latest タグをプッシュ
 - name: 'gcr.io/cloud-builders/docker'
-  id: Push
+  id: PushLatest
   args:
     - 'push'
-    - '${_AR_REPO_PATH}/${_IMAGE_NAME}:latest' 
+    - '${_AR_REPO_PATH}/${_IMAGE_NAME}:latest'
+
+# 4. Artifact Registryに $SHORT_SHA タグをプッシュ
+- name: 'gcr.io/cloud-builders/docker'
+  id: PushSha 
+  args:
+    - 'push'
     - '${_AR_REPO_PATH}/${_IMAGE_NAME}:${SHORT_SHA}'
 
 substitutions:
@@ -33,7 +39,6 @@ substitutions:
 
   # 派生変数の定義
   _IMAGE_NAME: 'pixiv-scraper'
-  # : Artifact Registryのホスト名を修正 (一般的には 'docker.pkg.dev')
   _AR_REPO_PATH: '${_GCP_REGION}-docker.pkg.dev/${_GCP_PROJECT_ID}/${_AR_REPO}'
 
 images:
