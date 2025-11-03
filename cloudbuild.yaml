@@ -1,4 +1,4 @@
-# cloudbuild.yaml (最終修正: Pushステップを分割)
+# cloudbuild.yaml
 
 steps:
 # 1. Dockerイメージのビルド
