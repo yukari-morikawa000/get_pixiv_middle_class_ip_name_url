@@ -107,7 +107,6 @@ def search_pixiv_dic(keyword):
 def main():
     print("--- BigQuery差分抽出・Pixiv検索・BQロード処理 開始 ---")
     
-    # プロジェクトIDを強制したクライアントを準備
     bq_client = bigquery.Client(project=PROJECT_ID)
     
     # BQからデータ取得
