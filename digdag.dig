@@ -1,0 +1,23 @@
+# digdag.dig
+
+timezone: Asia/Tokyo
+# schedule: (手動実行する)
+
+_export:
+  # 環境変数を定義 (job.yamlでenvsubstに利用される)
+  GCP_PROJECT_ID: "hogeticlab-legs-prd"
+  BIGQUERY_DATASET: "z_personal_morikawa"
+
+# 以前の成功例と同様に単一ジョブとして実行
++main_workflow:
+  # sh:オペレーターは6時間でタイムアウト
+  _retry: 3
+  _command_timeout: 6h
+
+  # run_kube_job.shに必要な変数をエクスポート
+  _export:
+    JOB_NAME: "pixiv-scraper-job-${session_uuid}"
+    BATCH_INDEX: "0" # 単一ジョブとして処理
+    
+  # run_kube_job.sh を呼び出し、K8s Jobの投入と監視を開始
+  sh>: ./run_kube_job.sh ${BATCH_INDEX} ${JOB_NAME} ${GCP_PROJECT_ID} ${BIGQUERY_DATASET}
