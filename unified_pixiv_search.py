@@ -9,12 +9,16 @@ import time
 import random
 import unicodedata
 import re # 正規表現
+import os
 
 # middle_class_ip_nameを整形
 from clean_name import clean_ip_name 
 
-PROJECT_ID = "hogeticlab-legs-prd"
-DATASET_ID = "z_personal_morikawa"   
+# PROJECT_ID = "hogeticlab-legs-prd"
+# DATASET_ID = "z_personal_morikawa"  
+PROJECT_ID = os.environ.get("hogeticlab-legs-prd")
+DATASET_ID = os.environ.get("z_personal_morikawa")
+
 # マスターIPリストのテーブル
 MASTER_TABLE = "master_spreadsheet.master_ip_list_twitter_account_tb"
 MASTER_COLUMN = "ip_name" 

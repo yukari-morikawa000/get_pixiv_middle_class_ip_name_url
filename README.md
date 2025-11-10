@@ -1,4 +1,4 @@
 # get_pixiv_middle_class_ip_name_url
-### ピクシブ百科事典の検索からURLを取得する
+### ip_nameのマスタから、ピクシブ百科事典のIP詳細ページのURLを取得する
 
 
