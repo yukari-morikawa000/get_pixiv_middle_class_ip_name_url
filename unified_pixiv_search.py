@@ -20,6 +20,13 @@ from clean_name import clean_ip_name
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
 DATASET_ID = os.environ.get("BIGQUERY_DATASET")
 
+# 環境変数が設定されていなかった場合のエラー処理
+if not PROJECT_ID or not DATASET_ID:
+    print("エラー: 環境変数 GCP_PROJECT_ID または BIGQUERY_DATASET が設定されていません。")
+    print(f"GCP_PROJECT_ID: {PROJECT_ID}")
+    print(f"BIGQUERY_DATASET: {DATASET_ID}")
+    raise ValueError("必須の環境変数が不足しています。処理を中断します。")
+
 # マスターIPリストのテーブル
 MASTER_TABLE = "master_spreadsheet.master_ip_list_twitter_account_tb"
 MASTER_COLUMN = "ip_name" 
