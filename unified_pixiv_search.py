@@ -16,8 +16,9 @@ from clean_name import clean_ip_name
 
 # PROJECT_ID = "hogeticlab-legs-prd"
 # DATASET_ID = "z_personal_morikawa"  
-PROJECT_ID = os.environ.get("hogeticlab-legs-prd")
-DATASET_ID = os.environ.get("z_personal_morikawa")
+# digファイルから渡される環境変数
+PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
+DATASET_ID = os.environ.get("BIGQUERY_DATASET")
 
 # マスターIPリストのテーブル
 MASTER_TABLE = "master_spreadsheet.master_ip_list_twitter_account_tb"
@@ -50,7 +51,7 @@ def get_bq_names(table_id: str, column_name: str) -> set:
         print(f"BigQueryからのデータ取得中にエラーが発生しました: {e}")
         return set()
 
-# --- Pixiv検索関数 (件数取得ロジックを追加) ---
+#  Pixiv検索関数
 def search_pixiv_dic(keyword):
     """
     PlaywrightでPixiv百科事典を検索し、完全一致するタイトルとURL、
@@ -58,7 +59,7 @@ def search_pixiv_dic(keyword):
     """
     search_url = "https://dic.pixiv.net/search?query=" + urllib.parse.quote(keyword)
     results = []
-    hit_count = 0 # 件数カウンター
+    hit_count = 0 # 件数カウント
     
     try:
         with sync_playwright() as p:
@@ -68,7 +69,7 @@ def search_pixiv_dic(keyword):
             try:
                 page.goto(search_url, timeout=60000)
 
-                # 件数取得ロジック
+                # 件数取得
                 try:
                     info_locator = page.locator("header .info")
                     if info_locator.count() > 0:
@@ -201,7 +202,7 @@ def main():
         # サイトへの負荷を考慮し、処理ごとに待機
         time.sleep(random.uniform(5, 10)) 
 
- # 4. BigQueryに一括送信 (全件洗い替え WRITE_TRUNCATE を使用)
+ # BigQueryに一括送信 (全件洗い替え WRITE_TRUNCATE を使用)
     if rows_to_insert:
         print("-" * 30)
         print(f"合計 {len(rows_to_insert)} 件の検索結果をBigQueryにロード中...")
