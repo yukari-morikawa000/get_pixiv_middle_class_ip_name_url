@@ -14,8 +14,6 @@ import os
 # middle_class_ip_nameを整形
 from clean_name import clean_ip_name 
 
-# PROJECT_ID = "hogeticlab-legs-prd"
-# DATASET_ID = "z_personal_morikawa"  
 # digファイルから渡される環境変数
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
 DATASET_ID = os.environ.get("BIGQUERY_DATASET")
@@ -58,63 +56,6 @@ def get_bq_names(table_id: str, column_name: str) -> set:
         print(f"BigQueryからのデータ取得中にエラーが発生しました: {e}")
         return set()
 
-#  Pixiv検索関数
-def search_pixiv_dic(keyword):
-    """
-    PlaywrightでPixiv百科事典を検索し、完全一致するタイトルとURL、
-    および検索結果の件数を取得する。
-    """
-    search_url = "https://dic.pixiv.net/search?query=" + urllib.parse.quote(keyword)
-    results = []
-    hit_count = 0 # 件数カウント
-    
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            
-            try:
-                page.goto(search_url, timeout=60000)
-
-                # 件数取得
-                try:
-                    info_locator = page.locator("header .info")
-                    if info_locator.count() > 0:
-                        info_text = info_locator.nth(0).inner_text().strip()
-                        # '検索結果：XXX件' の形式から数値を抽出
-                        m = re.search(r"検索結果：(\d+)件", info_text)
-                        if m:
-                            hit_count = int(m.group(1))
-                except Exception as e:
-                    print(f"件数取得失敗: {e}")
-
-                # 完全一致のタイトルとURLを取得
-                articles = page.locator("article")
-                count = articles.count()
-                for i in range(count):
-                    title_el = articles.nth(i).locator("div.info h2 a")
-                    if title_el.count() == 0:
-                        continue
-
-                    title = title_el.inner_text().strip()
-                    href = title_el.get_attribute("href")
-                    
-                    if normalize(title) == normalize(keyword): 
-                        full_url = urllib.parse.urljoin("https://dic.pixiv.net", href)
-                        results.append((title, full_url))
-                
-                browser.close()
-
-            except Exception as e:
-                print(f"Playwright/検索エラー: {e}")
-                return [], 0 # 内部エラー時、結果と件数0を返す
-            
-    except Exception as e:
-        print(f"全体エラー: {e}")
-        return [], 0 # 全体エラー時、結果と件数0を返す
-
-    return results, hit_count # 結果と件数を返す
-
 # メイン処理
 def main():
     print("--- BigQuery差分抽出・Pixiv検索・BQロード処理 開始 ---")
@@ -153,7 +94,7 @@ def main():
 
     # --- テスト用（本番実行の場合はここはコメントアウトする） ----
     # 時間がかかるので1回30件までに制限
-    TEST_LIMIT = 30
+    TEST_LIMIT = 5
     if len(tasks) > TEST_LIMIT:
         tasks = tasks[:TEST_LIMIT]
         print(f"テストのため、検索対象を先頭の {TEST_LIMIT} 件に制限します。")
@@ -162,55 +103,104 @@ def main():
     # Pixiv検索とBQデータ準備
     rows_to_insert = []
     
-    for i, task in enumerate(tasks):
-        original_name = task['original_name']
-        cleaned_name = task['cleaned_name']
-        
-        print(f"({i + 1}/{len(tasks)}) 検索: {cleaned_name} (元: {original_name})")
-
-        try:
-            # 件数を受け取るように変更
-            candidates, hit_count = search_pixiv_dic(cleaned_name) 
-            # 更新日
-            today_date = datetime.now().date().isoformat()
+    try:
+        with sync_playwright() as p:
+            print("Playwright ブラウザを起動中...")
+            browser = p.chromium.launch(headless=True)
             
-            if candidates:
-                for title, link in candidates:
-                    print(f"  ヒット: {title} → {link}")
+            for i, task in enumerate(tasks):
+                original_name = task['original_name']
+                cleaned_name = task['cleaned_name']
+                
+                print(f"({i + 1}/{len(tasks)}) 検索: {cleaned_name} (元: {original_name})")
+
+                try:
+                    candidates = []
+                    hit_count = 0 
+                    today_date = datetime.now().date().isoformat()
+                    
+                    page = browser.new_page()
+                    
+                    keyword = cleaned_name
+                    search_url = "https://dic.pixiv.net/search?query=" + urllib.parse.quote(keyword)
+                    
+                    page.goto(search_url, timeout=60000)
+
+                    # 件数取得ロジック
+                    try:
+                        info_locator = page.locator("header .info")
+                        if info_locator.count() > 0:
+                            info_text = info_locator.nth(0).inner_text().strip()
+                            m = re.search(r"検索結果：(\d+)件", info_text)
+                            if m: hit_count = int(m.group(1))
+                    except Exception as e:
+                        print(f"件数取得失敗: {e}")
+
+                    # 完全一致のタイトルとURLを取得ロジック
+                    articles = page.locator("article")
+                    count = articles.count()
+                    for j in range(count):
+                        title_el = articles.nth(j).locator("div.info h2 a")
+                        if title_el.count() == 0: continue
+
+                        title = title_el.inner_text().strip()
+                        href = title_el.get_attribute("href")
+                        
+                        if normalize(title) == normalize(keyword): 
+                            full_url = urllib.parse.urljoin("https://dic.pixiv.net", href)
+                            candidates.append((title, full_url))
+                    
+                    # ページを閉じる
+                    page.close() 
+
+                    if candidates:
+                        for title, link in candidates:
+                            print(f"  ヒット: {title} → {link}")
+                            rows_to_insert.append({
+                                "middle_class_ip_name": original_name,
+                                "clean_middle_class_ip_name": cleaned_name,
+                                "URL": link,
+                                "pixiv_search_result_ip": title,
+                                "search_hit_num": None,
+                                "update": today_date,
+                            })
+                    else:
+                        print(f"該当なし (検索結果件数: {hit_count}件)")
+                        rows_to_insert.append({
+                            "middle_class_ip_name": original_name,
+                            "clean_middle_class_ip_name": cleaned_name,
+                            "URL": "",
+                            "pixiv_search_result_ip": "該当なし",
+                            "search_hit_num": hit_count,
+                            "update": today_date,
+                        })
+
+                except Exception as e:
+                    # ページ操作中にエラーが発生した場合
+                    print(f"  重大エラー発生（Playwright/BigQuery送信対象）：{e}")
                     rows_to_insert.append({
                         "middle_class_ip_name": original_name,
                         "clean_middle_class_ip_name": cleaned_name,
-                        "URL": link,
-                        "pixiv_search_result_ip": title,
-                        "search_hit_num": None, # ヒットする場合は必要なし
-                        "update": today_date,
+                        "URL": str(e),
+                        "pixiv_search_result_ip": "ERROR",
+                        "search_hit_num": -1,
+                        "update": datetime.now().date().isoformat(),
                     })
-            else:
-                print(f"該当なし (検索結果件数: {hit_count}件)")
-                rows_to_insert.append({
-                    "middle_class_ip_name": original_name,
-                    "clean_middle_class_ip_name": cleaned_name,
-                    "URL": "",
-                    "pixiv_search_result_ip": "該当なし",
-                    "search_hit_num": hit_count, # 件数を追加
-                    "update": today_date,
-                })
+                
+                # サイトへの負荷を考慮し、処理ごとに待機
+                time.sleep(random.uniform(5, 10)) 
+            
+            # 全処理終了後、ブラウザを終了
+            browser.close()
+            print("Playwright ブラウザを終了しました。")
 
-        except Exception as e:
-            print(f"  重大エラー発生（BigQuery送信対象）：{e}")
-            rows_to_insert.append({
-                "middle_class_ip_name": original_name,
-                "clean_middle_class_ip_name": cleaned_name,
-                "URL": str(e),
-                "pixiv_search_result_ip": "ERROR",
-                "search_hit_num": -1, # エラー時は-1などを設定
-                "update": today_date,
-            })
-
-        # サイトへの負荷を考慮し、処理ごとに待機
-        time.sleep(random.uniform(5, 10)) 
-
- # BigQueryに一括送信 (全件洗い替え WRITE_TRUNCATE を使用)
+    except Exception as e:
+        # Playwright/ブラウザ起動そのものに関する重大エラーをキャッチ
+        print(f"Playwright 全体エラー（ブラウザ起動またはコンテキストエラー）：{e}")
+        # 環境のクラッシュを防ぐため、再スローする
+        raise 
+        
+    # BigQueryに一括送信 (全件洗い替え WRITE_TRUNCATE を使用)
     if rows_to_insert:
         print("-" * 30)
         print(f"合計 {len(rows_to_insert)} 件の検索結果をBigQueryにロード中...")
