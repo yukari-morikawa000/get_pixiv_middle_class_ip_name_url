@@ -94,7 +94,7 @@ def main():
 
     # --- テスト用（本番実行の場合はここはコメントアウトする） ----
     # 時間がかかるので1回30件までに制限
-    TEST_LIMIT = 5
+    TEST_LIMIT = 30
     if len(tasks) > TEST_LIMIT:
         tasks = tasks[:TEST_LIMIT]
         print(f"テストのため、検索対象を先頭の {TEST_LIMIT} 件に制限します。")
@@ -220,7 +220,7 @@ def main():
             )
             job.result()  # ロードジョブの完了を待機
             
-            print(f"🎉 BigQuery一時テーブル ({BQ_TARGET_TABLE}) へのロードが完了しました。")
+            print(f" BigQuery一時テーブル ({BQ_TARGET_TABLE}) へのロードが完了しました。")
             print(f" (テーブルは全 {len(result_df)} 件で上書きされました)")
             
         except Exception as e:
